@@ -108,17 +108,16 @@ function computeDiff(currentText: string): string {
   const lastLines = lastCopiedText.split('\n');
   const currentLines = currentText.split('\n');
 
-  // Find the longest suffix of lastLines that matches a prefix of currentLines
-  let overlapLength = 0;
-  for (let i = 1; i <= Math.min(lastLines.length, currentLines.length); i++) {
-    const lastSuffix = lastLines.slice(-i);
-    const currentPrefix = currentLines.slice(0, i);
-    if (lastSuffix.every((line, idx) => line === currentPrefix[idx])) {
-      overlapLength = i;
+  // Search from the end of lastLines to find the best anchor point in currentLines.
+  // Live captions may update earlier lines, so find the latest stable match.
+  for (let i = lastLines.length - 1; i >= 0; i--) {
+    const idx = currentLines.lastIndexOf(lastLines[i]);
+    if (idx !== -1) {
+      return currentLines.slice(idx + 1).join('\n');
     }
   }
 
-  return currentLines.slice(overlapLength).join('\n');
+  return currentText;
 }
 
 async function handleCopyCaptions(): Promise<{ success: boolean; message: string }> {
