@@ -100,6 +100,27 @@ function showToast(message: string, isError = false): void {
   }, 2000);
 }
 
+let lastCopiedText = '';
+
+function computeDiff(currentText: string): string {
+  if (!lastCopiedText) return currentText;
+
+  const lastLines = lastCopiedText.split('\n');
+  const currentLines = currentText.split('\n');
+
+  // Find the longest suffix of lastLines that matches a prefix of currentLines
+  let overlapLength = 0;
+  for (let i = 1; i <= Math.min(lastLines.length, currentLines.length); i++) {
+    const lastSuffix = lastLines.slice(-i);
+    const currentPrefix = currentLines.slice(0, i);
+    if (lastSuffix.every((line, idx) => line === currentPrefix[idx])) {
+      overlapLength = i;
+    }
+  }
+
+  return currentLines.slice(overlapLength).join('\n');
+}
+
 async function handleCopyCaptions(): Promise<{ success: boolean; message: string }> {
   const captions = getCaptions();
 
@@ -112,8 +133,37 @@ async function handleCopyCaptions(): Promise<{ success: boolean; message: string
   const success = await copyToClipboard(text);
 
   if (success) {
+    lastCopiedText = text;
     showToast('Copied to clipboard!');
     return { success: true, message: 'Copied!' };
+  } else {
+    showToast('Failed to copy', true);
+    return { success: false, message: 'Failed to copy' };
+  }
+}
+
+async function handleCopyDiff(): Promise<{ success: boolean; message: string }> {
+  const captions = getCaptions();
+
+  if (captions.length === 0) {
+    showToast('No captions found', true);
+    return { success: false, message: 'No captions found' };
+  }
+
+  const currentText = formatCaptions(captions);
+  const diffText = computeDiff(currentText);
+
+  if (!diffText) {
+    showToast('No new captions', true);
+    return { success: false, message: 'No new captions' };
+  }
+
+  const success = await copyToClipboard(diffText);
+
+  if (success) {
+    lastCopiedText = currentText;
+    showToast('Copied diff to clipboard!');
+    return { success: true, message: 'Copied diff!' };
   } else {
     showToast('Failed to copy', true);
     return { success: false, message: 'Failed to copy' };
@@ -125,11 +175,19 @@ chrome.runtime.onMessage.addListener(
   (
     request: { action: string },
     _sender: chrome.runtime.MessageSender,
-    sendResponse: (response: { success: boolean; message: string }) => void
+    sendResponse: (response: { success: boolean; message: string; hasCopied?: boolean }) => void
   ) => {
     if (request.action === 'copy-captions') {
       handleCopyCaptions().then(sendResponse);
-      return true; // Keep the message channel open for async response
+      return true;
+    }
+    if (request.action === 'copy-captions-diff') {
+      handleCopyDiff().then(sendResponse);
+      return true;
+    }
+    if (request.action === 'query-state') {
+      sendResponse({ success: true, message: '', hasCopied: lastCopiedText !== '' });
+      return false;
     }
   }
 );

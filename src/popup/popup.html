@@ -27,6 +27,17 @@
       background: #ccc;
       cursor: not-allowed;
     }
+    #copy-diff-btn {
+      display: none;
+      margin-top: 6px;
+      background: #34a853;
+    }
+    #copy-diff-btn:hover {
+      background: #2d9249;
+    }
+    #copy-diff-btn:disabled {
+      background: #ccc;
+    }
     .status {
       margin-top: 8px;
       text-align: center;
@@ -43,6 +54,7 @@
 </head>
 <body>
   <button id="copy-btn">Copy Captions</button>
+  <button id="copy-diff-btn">Copy Diff</button>
   <div id="status" class="status"></div>
   <script src="popup.js"></script>
 </body>
