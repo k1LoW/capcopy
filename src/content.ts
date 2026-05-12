@@ -5,6 +5,34 @@ const SELECTORS = {
   speaker: '.adE6rb',
 } as const;
 
+function enableCaptionSelection(): void {
+  if (document.getElementById('capcopy-selectable-style')) return;
+
+  const style = document.createElement('style');
+  style.id = 'capcopy-selectable-style';
+  // Google Meet disables text selection on the caption area.
+  // Override so users can select and copy captions manually.
+  style.textContent = `
+    ${SELECTORS.captionContainer},
+    ${SELECTORS.captionContainer} *,
+    ${SELECTORS.captionText},
+    ${SELECTORS.speaker} {
+      -webkit-user-select: text !important;
+      -moz-user-select: text !important;
+      -ms-user-select: text !important;
+      user-select: text !important;
+      cursor: text !important;
+    }
+  `;
+  (document.head || document.documentElement).appendChild(style);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', enableCaptionSelection, { once: true });
+} else {
+  enableCaptionSelection();
+}
+
 interface Caption {
   speaker: string;
   text: string;
